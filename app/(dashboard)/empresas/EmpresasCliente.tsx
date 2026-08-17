@@ -3,7 +3,7 @@
 import { useState, useTransition, useCallback } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, Search, Building2, MapPin, Phone, ChevronRight, SlidersHorizontal } from 'lucide-react'
+import { Plus, Search, Building2, ChevronRight, SlidersHorizontal } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { EmpresaDrawer } from './EmpresaDrawer'
@@ -14,9 +14,23 @@ const SEGMENTOS = [
   'Distribuidora', 'Açougue', 'Restaurante', 'Outro',
 ]
 
+const FUNIL_LABEL: Record<string, string> = {
+  novos: 'Novos',
+  recorrentes: 'Recorrentes',
+  gaveta: 'Gaveta',
+  rateio: 'Rateio',
+}
+
+const FUNIL_BADGE: Record<string, string> = {
+  novos:       'bg-[#E0EDFF] text-[#1A3E7A]',
+  recorrentes: 'bg-[#E6F4EC] text-[#1A6B35]',
+  gaveta:      'bg-[#FFF3CD] text-[#7A4F00]',
+  rateio:      'bg-[#FDE8E8] text-[#8B1A1A]',
+}
+
 interface EmpresasClienteProps {
   empresasIniciais: EmpresaResumo[]
-  filtros: { q?: string; segmento?: string; ativo?: string }
+  filtros: { q?: string; segmento?: string; ativo?: string; funil?: string; regiao?: string }
 }
 
 function formatarCpfCnpj(valor: string): string {
@@ -90,6 +104,30 @@ export default function EmpresasCliente({ empresasIniciais, filtros }: EmpresasC
           </select>
 
           <select
+            value={filtros.regiao ?? ''}
+            onChange={e => aplicarFiltros({ regiao: e.target.value })}
+            className="text-sm border border-[#DDD9D2] rounded-lg px-3 py-2 bg-white text-[#0B1929]
+                       focus:outline-none focus:ring-2 focus:ring-[#F5B800]/50"
+          >
+            <option value="">Todas as regiões</option>
+            <option value="reg1">REG 1</option>
+            <option value="reg2">REG 2</option>
+          </select>
+
+          <select
+            value={filtros.funil ?? ''}
+            onChange={e => aplicarFiltros({ funil: e.target.value })}
+            className="text-sm border border-[#DDD9D2] rounded-lg px-3 py-2 bg-white text-[#0B1929]
+                       focus:outline-none focus:ring-2 focus:ring-[#F5B800]/50"
+          >
+            <option value="">Todos os funis</option>
+            <option value="novos">Novos</option>
+            <option value="recorrentes">Recorrentes</option>
+            <option value="gaveta">Gaveta</option>
+            <option value="rateio">Rateio</option>
+          </select>
+
+          <select
             value={filtros.ativo ?? ''}
             onChange={e => aplicarFiltros({ ativo: e.target.value })}
             className="text-sm border border-[#DDD9D2] rounded-lg px-3 py-2 bg-white text-[#0B1929]
@@ -121,9 +159,10 @@ export default function EmpresasCliente({ empresasIniciais, filtros }: EmpresasC
                 <tr className="border-b border-[#DDD9D2] bg-[#F4F2EE]">
                   <th className="text-left px-5 py-3 text-xs font-semibold text-[#7A8FA6] uppercase tracking-wide">Empresa</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-[#7A8FA6] uppercase tracking-wide">CPF/CNPJ</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-[#7A8FA6] uppercase tracking-wide">Contato</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-[#7A8FA6] uppercase tracking-wide">Localidade</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-[#7A8FA6] uppercase tracking-wide">Região</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-[#7A8FA6] uppercase tracking-wide">Funil</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-[#7A8FA6] uppercase tracking-wide">Responsável</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-[#7A8FA6] uppercase tracking-wide">Última compra</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-[#7A8FA6] uppercase tracking-wide">Status</th>
                   <th className="px-5 py-3" />
                 </tr>
@@ -137,10 +176,10 @@ export default function EmpresasCliente({ empresasIniciais, filtros }: EmpresasC
                     <td className="px-5 py-4">
                       <div>
                         <p className="font-semibold text-[#0B1929] leading-tight">
-                          {empresa.razao_social}
+                          {empresa.nome_fantasia ?? empresa.razao_social}
                         </p>
                         {empresa.nome_fantasia && (
-                          <p className="text-xs text-[#7A8FA6] mt-0.5">{empresa.nome_fantasia}</p>
+                          <p className="text-xs text-[#7A8FA6] mt-0.5">{empresa.razao_social}</p>
                         )}
                         {empresa.segmento && (
                           <Badge variant="default" className="mt-1">{empresa.segmento}</Badge>
@@ -151,29 +190,14 @@ export default function EmpresasCliente({ empresasIniciais, filtros }: EmpresasC
                       {formatarCpfCnpj(empresa.cpf_cnpj)}
                     </td>
                     <td className="px-5 py-4">
-                      {empresa.contato_nome ? (
-                        <div>
-                          <p className="text-[#0B1929] text-sm">{empresa.contato_nome}</p>
-                          {empresa.contato_whatsapp && (
-                            <p className="text-xs text-[#7A8FA6] flex items-center gap-1 mt-0.5">
-                              <Phone size={10} />
-                              {empresa.contato_whatsapp}
-                            </p>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-[#DDD9D2] text-xs">Sem contato</span>
-                      )}
+                      <span className="text-xs font-semibold text-[#3A5A78] bg-[#E8EDF2] px-2 py-0.5 rounded">
+                        {empresa.regiao === 'reg1' ? 'REG 1' : 'REG 2'}
+                      </span>
                     </td>
                     <td className="px-5 py-4">
-                      {empresa.cidade ? (
-                        <p className="text-[#5E7A96] text-sm flex items-center gap-1">
-                          <MapPin size={12} />
-                          {empresa.cidade}{empresa.uf ? `, ${empresa.uf}` : ''}
-                        </p>
-                      ) : (
-                        <span className="text-[#DDD9D2] text-xs">—</span>
-                      )}
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded ${FUNIL_BADGE[empresa.funil] ?? 'bg-[#F4F2EE] text-[#7A8FA6]'}`}>
+                        {FUNIL_LABEL[empresa.funil] ?? empresa.funil}
+                      </span>
                     </td>
                     <td className="px-5 py-4">
                       {empresa.vendedor_nome ? (
@@ -181,6 +205,11 @@ export default function EmpresasCliente({ empresasIniciais, filtros }: EmpresasC
                       ) : (
                         <span className="text-[#DDD9D2] text-xs">—</span>
                       )}
+                    </td>
+                    <td className="px-5 py-4 text-sm text-[#5E7A96]">
+                      {empresa.ultima_compra_valida
+                        ? new Date(empresa.ultima_compra_valida).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
+                        : <span className="text-[#DDD9D2] text-xs">—</span>}
                     </td>
                     <td className="px-5 py-4">
                       <Badge variant={empresa.ativo ? 'success' : 'inactive'}>

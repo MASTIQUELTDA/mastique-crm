@@ -2,12 +2,12 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { CheckCircle, XCircle, Archive, RotateCcw, Pencil } from 'lucide-react'
+import { CheckCircle, XCircle, RotateCcw, Pencil } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
-import { fecharNegociacao, moverParaGaveta, reabrirNegociacao, editarNegociacao } from '@/app/actions/negociacoes'
+import { concluirNegociacao, cancelarNegociacao, reabrirNegociacao, editarNegociacao } from '@/app/actions/negociacoes'
 import type { NegociacaoDetalhe } from '@/lib/types'
 
 const ORIGENS = [
@@ -19,8 +19,7 @@ const ORIGENS = [
 ]
 
 interface Props { neg: NegociacaoDetalhe }
-
-type ModalTipo = 'ganhar' | 'perder' | 'gaveta' | 'editar' | null
+type ModalTipo = 'concluir' | 'cancelar' | 'editar' | null
 
 export default function NegociacaoDetalheCliente({ neg }: Props) {
   const router = useRouter()
@@ -29,18 +28,18 @@ export default function NegociacaoDetalheCliente({ neg }: Props) {
   const [motivo, setMotivo] = useState('')
   const [erro, setErro] = useState<string | null>(null)
 
-  function handleFechar(status: 'ganha' | 'perdida') {
+  function handleConcluir() {
     startTransition(async () => {
-      const result = await fecharNegociacao(neg.id, status, motivo || undefined)
+      const result = await concluirNegociacao(neg.id, neg.empresa_id, motivo || undefined)
       if (result.error) { setErro(result.error); return }
       setModal(null)
       router.refresh()
     })
   }
 
-  function handleGaveta() {
+  function handleCancelar() {
     startTransition(async () => {
-      const result = await moverParaGaveta(neg.id, motivo || undefined)
+      const result = await cancelarNegociacao(neg.id, neg.empresa_id, motivo || undefined)
       if (result.error) { setErro(result.error); return }
       setModal(null)
       router.refresh()
@@ -80,37 +79,19 @@ export default function NegociacaoDetalheCliente({ neg }: Props) {
               <Pencil size={14} />
               Editar
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => abrirModal('gaveta')}
-              className="text-[#7A8FA6] hover:text-[#7A4F00] hover:bg-[#FFF3CD]">
-              <Archive size={14} />
-              Gaveta
-            </Button>
-            <Button variant="danger" size="sm" onClick={() => abrirModal('perder')}>
-              <XCircle size={14} />
-              Perdida
-            </Button>
-            <Button size="sm" onClick={() => abrirModal('ganhar')}>
-              <CheckCircle size={14} />
-              Ganha
-            </Button>
-          </>
-        )}
-
-        {neg.status === 'gaveta' && (
-          <>
-            <Button variant="ghost" size="sm" onClick={() => abrirModal('perder')}
+            <Button variant="ghost" size="sm" onClick={() => abrirModal('cancelar')}
               className="text-[#7A8FA6] hover:text-[#E53E3E] hover:bg-[#FDE8E8]">
               <XCircle size={14} />
-              Marcar perdida
+              Cancelar
             </Button>
-            <Button variant="secondary" size="sm" onClick={handleReabrir} loading={pending}>
-              <RotateCcw size={14} />
-              Reabrir
+            <Button size="sm" onClick={() => abrirModal('concluir')}>
+              <CheckCircle size={14} />
+              Concluir venda
             </Button>
           </>
         )}
 
-        {(neg.status === 'ganha' || neg.status === 'perdida') && (
+        {(neg.status === 'concluida' || neg.status === 'cancelada') && (
           <Button variant="secondary" size="sm" onClick={handleReabrir} loading={pending}>
             <RotateCcw size={14} />
             Reabrir
@@ -118,23 +99,26 @@ export default function NegociacaoDetalheCliente({ neg }: Props) {
         )}
       </div>
 
-      {/* Modal: marcar ganha */}
+      {/* Modal: concluir venda */}
       <Modal
-        open={modal === 'ganhar'}
+        open={modal === 'concluir'}
         onClose={() => setModal(null)}
-        title="Negociação ganha"
+        title="Concluir venda"
         size="sm"
         footer={
           <div className="flex justify-end gap-3">
             <Button variant="secondary" onClick={() => setModal(null)} disabled={pending}>Cancelar</Button>
-            <Button onClick={() => handleFechar('ganha')} loading={pending}>Confirmar ganho</Button>
+            <Button onClick={handleConcluir} loading={pending}>Confirmar conclusão</Button>
           </div>
         }
       >
         <div className="space-y-4">
           {erro && <p className="text-xs text-[#E53E3E]">{erro}</p>}
           <p className="text-sm text-[#3A5A78]">
-            Registre um comentário sobre o fechamento (opcional).
+            Registre uma observação sobre o fechamento da venda (opcional).
+          </p>
+          <p className="text-xs text-[#A0AEC0]">
+            Futuramente esta ação será automática via confirmação de pedido no Bling.
           </p>
           <textarea
             value={motivo}
@@ -147,58 +131,26 @@ export default function NegociacaoDetalheCliente({ neg }: Props) {
         </div>
       </Modal>
 
-      {/* Modal: marcar perdida */}
+      {/* Modal: cancelar venda */}
       <Modal
-        open={modal === 'perder'}
+        open={modal === 'cancelar'}
         onClose={() => setModal(null)}
-        title="Negociação perdida"
+        title="Cancelar venda"
         size="sm"
         footer={
           <div className="flex justify-end gap-3">
-            <Button variant="secondary" onClick={() => setModal(null)} disabled={pending}>Cancelar</Button>
-            <Button variant="danger" onClick={() => handleFechar('perdida')} loading={pending}>Confirmar perda</Button>
+            <Button variant="secondary" onClick={() => setModal(null)} disabled={pending}>Voltar</Button>
+            <Button variant="danger" onClick={handleCancelar} loading={pending}>Confirmar cancelamento</Button>
           </div>
         }
       >
         <div className="space-y-4">
           {erro && <p className="text-xs text-[#E53E3E]">{erro}</p>}
-          <p className="text-sm text-[#3A5A78]">Qual o motivo da perda?</p>
+          <p className="text-sm text-[#3A5A78]">Qual o motivo do cancelamento?</p>
           <textarea
             value={motivo}
             onChange={e => setMotivo(e.target.value)}
-            placeholder="Ex: Preço, prazo, concorrente, sem interesse no momento..."
-            rows={3}
-            className="w-full px-3 py-2 rounded-lg border border-[#DDD9D2] text-sm text-[#0B1929] bg-white resize-none
-                       focus:outline-none focus:ring-2 focus:ring-[#F5B800]/50 focus:border-[#F5B800] placeholder:text-[#A0AEC0]"
-          />
-        </div>
-      </Modal>
-
-      {/* Modal: mover para gaveta */}
-      <Modal
-        open={modal === 'gaveta'}
-        onClose={() => setModal(null)}
-        title="Mover para a Gaveta"
-        size="sm"
-        footer={
-          <div className="flex justify-end gap-3">
-            <Button variant="secondary" onClick={() => setModal(null)} disabled={pending}>Cancelar</Button>
-            <Button variant="ghost" onClick={handleGaveta} loading={pending}
-              className="bg-[#FFF3CD] text-[#7A4F00] hover:bg-[#FFE88A]">
-              Mover para Gaveta
-            </Button>
-          </div>
-        }
-      >
-        <div className="space-y-4">
-          {erro && <p className="text-xs text-[#E53E3E]">{erro}</p>}
-          <p className="text-sm text-[#3A5A78]">
-            A negociação vai para a Gaveta — pode ser retomada a qualquer momento. Qual o motivo?
-          </p>
-          <textarea
-            value={motivo}
-            onChange={e => setMotivo(e.target.value)}
-            placeholder="Ex: Cliente pediu retorno em 60 dias, aguardando aprovação interna..."
+            placeholder="Ex: Cliente desistiu, sem orçamento, concorrente..."
             rows={3}
             className="w-full px-3 py-2 rounded-lg border border-[#DDD9D2] text-sm text-[#0B1929] bg-white resize-none
                        focus:outline-none focus:ring-2 focus:ring-[#F5B800]/50 focus:border-[#F5B800] placeholder:text-[#A0AEC0]"
@@ -220,15 +172,6 @@ export default function NegociacaoDetalheCliente({ neg }: Props) {
       >
         <form id="form-editar-neg" action={handleEditar} className="space-y-4">
           {erro && <p className="text-xs text-[#E53E3E]">{erro}</p>}
-          <Select
-            name="tipo"
-            label="Tipo"
-            defaultValue={neg.tipo}
-            options={[
-              { value: 'novo', label: 'REG 1 — Novo' },
-              { value: 'recorrente', label: 'REG 2 — Recorrente' },
-            ]}
-          />
           <Input
             name="valor_estimado"
             label="Valor estimado (R$)"

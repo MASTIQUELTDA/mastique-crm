@@ -103,11 +103,45 @@ export function EmpresaDrawer({ open, onClose }: EmpresaDrawerProps) {
               label="Nome fantasia"
               placeholder="Como a empresa é conhecida (opcional)"
             />
-            <Select
-              name="segmento"
-              label="Segmento"
-              options={SEGMENTOS}
-              placeholder="Selecionar segmento..."
+            <div className="grid grid-cols-2 gap-4">
+              <Select
+                name="segmento"
+                label="Segmento"
+                options={SEGMENTOS}
+                placeholder="Selecionar segmento..."
+              />
+              <Select
+                name="regiao"
+                label="Região *"
+                defaultValue="reg1"
+                options={[
+                  { value: 'reg1', label: 'REG 1' },
+                  { value: 'reg2', label: 'REG 2' },
+                ]}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <Select
+                name="tipo_venda_padrao"
+                label="Tipo de venda padrão"
+                defaultValue="nf"
+                options={[
+                  { value: 'nf', label: 'Nota Fiscal' },
+                  { value: 'pedido_simples', label: 'Pedido Simples' },
+                ]}
+              />
+              <Input
+                name="constancia_cadastrada"
+                label="Constância (dias)"
+                type="number"
+                min="1"
+                placeholder="Ex: 30"
+              />
+            </div>
+            <Input
+              name="inscricao_estadual"
+              label="Inscrição estadual"
+              placeholder="Opcional"
             />
           </div>
         </section>

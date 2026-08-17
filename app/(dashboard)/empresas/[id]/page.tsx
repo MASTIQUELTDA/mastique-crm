@@ -64,6 +64,9 @@ export default async function EmpresaDetalhePage({
             <Badge variant={empresa.ativo ? 'success' : 'inactive'}>
               {empresa.ativo ? 'Ativa' : 'Inativa'}
             </Badge>
+            <span className="text-xs font-semibold text-[#3A5A78] bg-[#E8EDF2] px-2 py-0.5 rounded">
+              {empresa.regiao === 'reg1' ? 'REG 1' : 'REG 2'}
+            </span>
             {empresa.segmento && <Badge variant="default">{empresa.segmento}</Badge>}
           </div>
           {empresa.nome_fantasia && (
@@ -106,10 +109,46 @@ export default async function EmpresaDetalhePage({
                 <p className="text-xs text-[#7A8FA6] mb-0.5">Tipo</p>
                 <p className="text-sm text-[#0B1929]">{empresa.tipo === 'pj' ? 'Pessoa Jurídica' : 'Pessoa Física'}</p>
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-xs text-[#7A8FA6] mb-0.5">Região</p>
+                  <span className="text-xs font-semibold text-[#3A5A78] bg-[#E8EDF2] px-2 py-0.5 rounded">
+                    {empresa.regiao === 'reg1' ? 'REG 1' : 'REG 2'}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-xs text-[#7A8FA6] mb-0.5">Funil</p>
+                  <span className={`text-xs font-medium px-2 py-0.5 rounded ${
+                    { novos: 'bg-[#E0EDFF] text-[#1A3E7A]', recorrentes: 'bg-[#E6F4EC] text-[#1A6B35]', gaveta: 'bg-[#FFF3CD] text-[#7A4F00]', rateio: 'bg-[#FDE8E8] text-[#8B1A1A]' }[empresa.funil] ?? 'bg-[#F4F2EE] text-[#7A8FA6]'
+                  }`}>
+                    {{ novos: 'Novos', recorrentes: 'Recorrentes', gaveta: 'Gaveta', rateio: 'Rateio' }[empresa.funil] ?? empresa.funil}
+                  </span>
+                </div>
+              </div>
               {empresa.segmento && (
                 <div>
                   <p className="text-xs text-[#7A8FA6] mb-0.5">Segmento</p>
                   <p className="text-sm text-[#0B1929]">{empresa.segmento}</p>
+                </div>
+              )}
+              <div>
+                <p className="text-xs text-[#7A8FA6] mb-0.5">Tipo de venda</p>
+                <p className="text-sm text-[#0B1929]">
+                  {empresa.tipo_venda_padrao === 'pedido_simples' ? 'Pedido Simples' : 'Nota Fiscal'}
+                </p>
+              </div>
+              {empresa.constancia_cadastrada && (
+                <div>
+                  <p className="text-xs text-[#7A8FA6] mb-0.5">Constância cadastrada</p>
+                  <p className="text-sm text-[#0B1929]">{empresa.constancia_cadastrada} dias</p>
+                </div>
+              )}
+              {empresa.ultima_compra_valida && (
+                <div>
+                  <p className="text-xs text-[#7A8FA6] mb-0.5">Última compra válida</p>
+                  <p className="text-sm text-[#0B1929]">
+                    {new Date(empresa.ultima_compra_valida).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  </p>
                 </div>
               )}
               <div>

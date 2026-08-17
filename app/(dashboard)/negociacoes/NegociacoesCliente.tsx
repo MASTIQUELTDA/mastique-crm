@@ -2,32 +2,32 @@
 
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { ChevronRight, Calendar, User, TrendingUp } from 'lucide-react'
+import { ChevronRight, Calendar, TrendingUp } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import type { NegociacaoResumo } from '@/lib/types'
 
 const ABAS = [
-  { key: 'aberta', label: 'Abertas' },
-  { key: 'reg1', label: 'REG 1 — Novos' },
-  { key: 'reg2', label: 'REG 2 — Recorrentes' },
-  { key: 'gaveta', label: 'Gaveta' },
-  { key: 'historico', label: 'Histórico' },
+  { key: 'abertas',     label: 'Abertas' },
+  { key: 'novos',       label: 'Novos' },
+  { key: 'recorrentes', label: 'Recorrentes' },
+  { key: 'gaveta',      label: 'Gaveta' },
+  { key: 'historico',   label: 'Histórico' },
 ]
 
-function badgeStatus(status: string) {
-  const map: Record<string, { variant: any; label: string }> = {
-    aberta:    { variant: 'info',     label: 'Aberta' },
-    ganha:     { variant: 'success',  label: 'Ganha' },
-    perdida:   { variant: 'danger',   label: 'Perdida' },
-    gaveta:    { variant: 'warning',  label: 'Gaveta' },
-  }
-  return map[status] ?? { variant: 'default', label: status }
+const FUNIL_BADGE: Record<string, { cls: string; label: string }> = {
+  novos:       { cls: 'bg-[#E0EDFF] text-[#1A3E7A]',   label: 'Novos' },
+  recorrentes: { cls: 'bg-[#E6F4EC] text-[#1A6B35]',   label: 'Recorrentes' },
+  gaveta:      { cls: 'bg-[#FFF3CD] text-[#7A4F00]',   label: 'Gaveta' },
+  rateio:      { cls: 'bg-[#FDE8E8] text-[#8B1A1A]',   label: 'Rateio' },
 }
 
-function badgeTipo(tipo: string) {
-  return tipo === 'novo'
-    ? { variant: 'info' as const, label: 'REG 1 — Novo' }
-    : { variant: 'default' as const, label: 'REG 2 — Recorrente' }
+function statusBadge(status: string) {
+  const map: Record<string, { variant: any; label: string }> = {
+    aberta:    { variant: 'info',    label: 'Aberta' },
+    concluida: { variant: 'success', label: 'Concluída' },
+    cancelada: { variant: 'danger',  label: 'Cancelada' },
+  }
+  return map[status] ?? { variant: 'default', label: status }
 }
 
 function formatarData(iso: string) {
@@ -42,29 +42,17 @@ function formatarMoeda(v: number | null) {
 interface Props {
   negociacoesIniciais: NegociacaoResumo[]
   abaAtiva: string
-  tipoFiltro?: string
 }
 
-export default function NegociacoesCliente({ negociacoesIniciais, abaAtiva, tipoFiltro }: Props) {
+export default function NegociacoesCliente({ negociacoesIniciais, abaAtiva }: Props) {
   const router = useRouter()
   const pathname = usePathname()
 
-  function navegar(aba: string, tipo?: string) {
+  function navegar(aba: string) {
     const sp = new URLSearchParams()
-    if (aba !== 'aberta') sp.set('status', aba === 'reg1' || aba === 'reg2' ? 'aberta' : aba)
-    if (aba === 'reg1') sp.set('tipo', 'novo')
-    if (aba === 'reg2') sp.set('tipo', 'recorrente')
+    if (aba !== 'abertas') sp.set('aba', aba)
     router.replace(`${pathname}?${sp.toString()}`)
   }
-
-  // Aba ativa resolvida para chave de exibição
-  const abaChave = abaAtiva === 'aberta' && tipoFiltro === 'novo'
-    ? 'reg1'
-    : abaAtiva === 'aberta' && tipoFiltro === 'recorrente'
-    ? 'reg2'
-    : abaAtiva === 'aberta'
-    ? 'aberta'
-    : abaAtiva
 
   const nome = negociacoesIniciais.length === 1 ? 'negociação' : 'negociações'
 
@@ -84,7 +72,7 @@ export default function NegociacoesCliente({ negociacoesIniciais, abaAtiva, tipo
               key={aba.key}
               onClick={() => navegar(aba.key)}
               className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                abaChave === aba.key
+                abaAtiva === aba.key
                   ? 'border-[#F5B800] text-[#0B1929]'
                   : 'border-transparent text-[#7A8FA6] hover:text-[#0B1929]'
               }`}
@@ -102,10 +90,10 @@ export default function NegociacoesCliente({ negociacoesIniciais, abaAtiva, tipo
             <TrendingUp size={40} className="text-[#DDD9D2] mb-4" />
             <p className="text-[#7A8FA6] font-medium">Nenhuma negociação aqui</p>
             <p className="text-sm text-[#A0AEC0] mt-1">
-              {abaChave === 'gaveta'
-                ? 'Nenhuma negociação na gaveta no momento.'
-                : abaChave === 'historico'
-                ? 'Nenhuma negociação finalizada ainda.'
+              {abaAtiva === 'gaveta'
+                ? 'Nenhuma empresa na Gaveta no momento.'
+                : abaAtiva === 'historico'
+                ? 'Nenhuma venda concluída ou cancelada ainda.'
                 : 'Abra uma negociação a partir da tela de uma empresa.'}
             </p>
           </div>
@@ -115,7 +103,7 @@ export default function NegociacoesCliente({ negociacoesIniciais, abaAtiva, tipo
               <thead>
                 <tr className="border-b border-[#DDD9D2] bg-[#F4F2EE]">
                   <th className="text-left px-5 py-3 text-xs font-semibold text-[#7A8FA6] uppercase tracking-wide">Empresa</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-[#7A8FA6] uppercase tracking-wide">Tipo</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-[#7A8FA6] uppercase tracking-wide">Região / Funil</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-[#7A8FA6] uppercase tracking-wide">Responsável</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-[#7A8FA6] uppercase tracking-wide">Próxima ação</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-[#7A8FA6] uppercase tracking-wide">Valor est.</th>
@@ -125,8 +113,8 @@ export default function NegociacoesCliente({ negociacoesIniciais, abaAtiva, tipo
               </thead>
               <tbody>
                 {negociacoesIniciais.map((neg, i) => {
-                  const tipo = badgeTipo(neg.tipo)
-                  const status = badgeStatus(neg.status)
+                  const funil = FUNIL_BADGE[neg.empresa_funil]
+                  const status = statusBadge(neg.status)
                   const atrasada = neg.data_proxima_acao && new Date(neg.data_proxima_acao) < new Date() && neg.status === 'aberta'
 
                   return (
@@ -143,7 +131,16 @@ export default function NegociacoesCliente({ negociacoesIniciais, abaAtiva, tipo
                         )}
                       </td>
                       <td className="px-5 py-4">
-                        <Badge variant={tipo.variant}>{tipo.label}</Badge>
+                        <div className="flex flex-col gap-1">
+                          <span className="text-xs font-semibold text-[#3A5A78] bg-[#E8EDF2] px-2 py-0.5 rounded w-fit">
+                            {neg.empresa_regiao === 'reg1' ? 'REG 1' : 'REG 2'}
+                          </span>
+                          {funil && (
+                            <span className={`text-xs font-medium px-2 py-0.5 rounded w-fit ${funil.cls}`}>
+                              {funil.label}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-5 py-4">
                         {neg.vendedor_nome

@@ -2,9 +2,9 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import type { NegociacaoDetalhe, NegociacaoStatus } from '@/lib/types'
+import type { NegociacaoDetalhe } from '@/lib/types'
 
-export async function listarNegociacoes(status?: string, tipo?: string) {
+export async function listarNegociacoes(status?: string, funil?: string) {
   const supabase = await createClient()
 
   let query = supabase
@@ -13,7 +13,7 @@ export async function listarNegociacoes(status?: string, tipo?: string) {
     .order('criado_em', { ascending: false })
 
   if (status) query = query.eq('status', status)
-  if (tipo) query = query.eq('tipo', tipo)
+  if (funil)  query = query.eq('empresa_funil', funil)
 
   const { data, error } = await query
   if (error) throw new Error(error.message)
@@ -65,7 +65,6 @@ export async function abrirNegociacao(formData: FormData) {
 
   const empresaId = formData.get('empresa_id') as string
 
-  // Verifica se já existe negociação aberta
   const { data: existente } = await supabase
     .from('negociacoes')
     .select('id')
@@ -80,7 +79,6 @@ export async function abrirNegociacao(formData: FormData) {
     .insert({
       empresa_id: empresaId,
       vendedor_id: user?.id ?? null,
-      tipo: formData.get('tipo') as string || 'novo',
       valor_estimado: formData.get('valor_estimado') ? Number(formData.get('valor_estimado')) : null,
       origem: formData.get('origem') as string || null,
       observacoes: formData.get('observacoes') as string || null,
@@ -91,12 +89,11 @@ export async function abrirNegociacao(formData: FormData) {
 
   if (error) return { error: error.message }
 
-  // Registra interação de abertura
   await supabase.from('negociacao_interacoes').insert({
     negociacao_id: negociacao.id,
     autor_id: user?.id ?? null,
     tipo: 'sistema',
-    descricao: `Negociação aberta (${negociacao.tipo === 'novo' ? 'REG 1 — Novo' : 'REG 2 — Recorrente'})`,
+    descricao: 'Venda aberta',
   })
 
   revalidatePath('/negociacoes')
@@ -110,7 +107,6 @@ export async function editarNegociacao(id: string, formData: FormData) {
   const { error } = await supabase
     .from('negociacoes')
     .update({
-      tipo: formData.get('tipo') as string,
       valor_estimado: formData.get('valor_estimado') ? Number(formData.get('valor_estimado')) : null,
       origem: formData.get('origem') as string || null,
       observacoes: formData.get('observacoes') as string || null,
@@ -125,38 +121,42 @@ export async function editarNegociacao(id: string, formData: FormData) {
   return { ok: true }
 }
 
-export async function fecharNegociacao(id: string, status: 'ganha' | 'perdida', motivo?: string) {
+export async function concluirNegociacao(id: string, empresaId: string, observacao?: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   const { error } = await supabase
     .from('negociacoes')
-    .update({ status, motivo_fechamento: motivo ?? null })
+    .update({ status: 'concluida', motivo_fechamento: observacao ?? null })
     .eq('id', id)
 
   if (error) return { error: error.message }
+
+  // Atualiza empresa: funil passa para recorrentes e registra última compra
+  await supabase.from('empresas').update({
+    ultima_compra_valida: new Date().toISOString().split('T')[0],
+  }).eq('id', empresaId)
 
   await supabase.from('negociacao_interacoes').insert({
     negociacao_id: id,
     autor_id: user?.id ?? null,
     tipo: 'sistema',
-    descricao: status === 'ganha'
-      ? `Negociação fechada como GANHA${motivo ? ` — ${motivo}` : ''}`
-      : `Negociação fechada como PERDIDA${motivo ? ` — Motivo: ${motivo}` : ''}`,
+    descricao: `Venda concluída${observacao ? ` — ${observacao}` : ''}`,
   })
 
   revalidatePath('/negociacoes')
   revalidatePath(`/negociacoes/${id}`)
+  revalidatePath(`/empresas/${empresaId}`)
   return { ok: true }
 }
 
-export async function moverParaGaveta(id: string, motivo?: string) {
+export async function cancelarNegociacao(id: string, empresaId: string, motivo?: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   const { error } = await supabase
     .from('negociacoes')
-    .update({ status: 'gaveta' as NegociacaoStatus, motivo_fechamento: motivo ?? null })
+    .update({ status: 'cancelada', motivo_fechamento: motivo ?? null })
     .eq('id', id)
 
   if (error) return { error: error.message }
@@ -165,11 +165,12 @@ export async function moverParaGaveta(id: string, motivo?: string) {
     negociacao_id: id,
     autor_id: user?.id ?? null,
     tipo: 'sistema',
-    descricao: `Negociação movida para a Gaveta${motivo ? ` — ${motivo}` : ''}`,
+    descricao: `Venda cancelada${motivo ? ` — Motivo: ${motivo}` : ''}`,
   })
 
   revalidatePath('/negociacoes')
   revalidatePath(`/negociacoes/${id}`)
+  revalidatePath(`/empresas/${empresaId}`)
   return { ok: true }
 }
 
@@ -177,7 +178,6 @@ export async function reabrirNegociacao(id: string, empresaId: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Verifica se já tem outra aberta
   const { data: existente } = await supabase
     .from('negociacoes')
     .select('id')
@@ -190,7 +190,7 @@ export async function reabrirNegociacao(id: string, empresaId: string) {
 
   const { error } = await supabase
     .from('negociacoes')
-    .update({ status: 'aberta' as NegociacaoStatus, motivo_fechamento: null })
+    .update({ status: 'aberta', motivo_fechamento: null })
     .eq('id', id)
 
   if (error) return { error: error.message }
@@ -199,7 +199,7 @@ export async function reabrirNegociacao(id: string, empresaId: string) {
     negociacao_id: id,
     autor_id: user?.id ?? null,
     tipo: 'sistema',
-    descricao: 'Negociação reaberta',
+    descricao: 'Venda reaberta',
   })
 
   revalidatePath('/negociacoes')
@@ -220,7 +220,6 @@ export async function adicionarInteracao(negociacaoId: string, formData: FormDat
 
   if (error) return { error: error.message }
 
-  // Atualiza próxima ação se informada
   const proxima = formData.get('data_proxima_acao') as string
   if (proxima) {
     await supabase

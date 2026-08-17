@@ -1,4 +1,6 @@
 export type Perfil = 'admin' | 'gestor' | 'vendedor' | 'estoquista'
+export type EmpresaFunil = 'novos' | 'recorrentes' | 'gaveta' | 'rateio'
+export type EmpresaRegiao = 'reg1' | 'reg2'
 
 export interface Empresa {
   id: string
@@ -9,6 +11,12 @@ export interface Empresa {
   segmento: string | null
   ativo: boolean
   vendedor_id: string | null
+  regiao: EmpresaRegiao
+  funil: EmpresaFunil
+  tipo_venda_padrao: 'nf' | 'pedido_simples'
+  inscricao_estadual: string | null
+  constancia_cadastrada: number | null
+  ultima_compra_valida: string | null
   criado_em: string
   atualizado_em: string
 }
@@ -29,15 +37,13 @@ export interface PerfilUsuario {
   ativo: boolean
 }
 
-export type NegociacaoStatus = 'aberta' | 'ganha' | 'perdida' | 'gaveta'
-export type NegociacaoTipo = 'novo' | 'recorrente'
+export type NegociacaoStatus = 'aberta' | 'concluida' | 'cancelada'
 export type InteracaoTipo = 'nota' | 'ligacao' | 'email' | 'reuniao' | 'proposta' | 'pedido' | 'sistema'
 
 export interface Negociacao {
   id: string
   empresa_id: string
   vendedor_id: string | null
-  tipo: NegociacaoTipo
   status: NegociacaoStatus
   valor_estimado: number | null
   origem: string | null
@@ -52,6 +58,8 @@ export interface NegociacaoResumo extends Negociacao {
   empresa_nome: string
   empresa_fantasia: string | null
   empresa_segmento: string | null
+  empresa_regiao: EmpresaRegiao
+  empresa_funil: EmpresaFunil
   vendedor_nome: string | null
 }
 
@@ -68,6 +76,8 @@ export interface NegociacaoDetalhe extends Negociacao {
   empresa_nome: string
   empresa_fantasia: string | null
   empresa_segmento: string | null
+  empresa_regiao: EmpresaRegiao
+  empresa_funil: EmpresaFunil
   vendedor_nome: string | null
   interacoes: NegociacaoInteracao[]
 }

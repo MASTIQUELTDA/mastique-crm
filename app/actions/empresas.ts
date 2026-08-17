@@ -8,7 +8,7 @@ function normalizarCpfCnpj(valor: string): string {
   return valor.replace(/\D/g, '')
 }
 
-export async function listarEmpresas(busca?: string, segmento?: string, ativo?: string) {
+export async function listarEmpresas(busca?: string, segmento?: string, ativo?: string, funil?: string, regiao?: string) {
   const supabase = await createClient()
 
   let query = supabase
@@ -21,14 +21,10 @@ export async function listarEmpresas(busca?: string, segmento?: string, ativo?: 
       `razao_social.ilike.%${busca}%,nome_fantasia.ilike.%${busca}%,cpf_cnpj.ilike.%${busca}%`
     )
   }
-
-  if (segmento) {
-    query = query.eq('segmento', segmento)
-  }
-
-  if (ativo !== undefined && ativo !== '') {
-    query = query.eq('ativo', ativo === 'true')
-  }
+  if (segmento) query = query.eq('segmento', segmento)
+  if (funil)    query = query.eq('funil', funil)
+  if (regiao)   query = query.eq('regiao', regiao)
+  if (ativo !== undefined && ativo !== '') query = query.eq('ativo', ativo === 'true')
 
   const { data, error } = await query
 
@@ -73,6 +69,12 @@ export async function criarEmpresa(formData: FormData) {
       nome_fantasia: formData.get('nome_fantasia') as string || null,
       tipo: formData.get('tipo') as string || 'pj',
       segmento: formData.get('segmento') as string || null,
+      regiao: formData.get('regiao') as string || 'reg1',
+      tipo_venda_padrao: formData.get('tipo_venda_padrao') as string || 'nf',
+      inscricao_estadual: formData.get('inscricao_estadual') as string || null,
+      constancia_cadastrada: formData.get('constancia_cadastrada')
+        ? Number(formData.get('constancia_cadastrada'))
+        : null,
     })
     .select()
     .single()
@@ -125,6 +127,12 @@ export async function editarEmpresa(id: string, formData: FormData) {
       razao_social: formData.get('razao_social') as string,
       nome_fantasia: formData.get('nome_fantasia') as string || null,
       segmento: formData.get('segmento') as string || null,
+      regiao: formData.get('regiao') as string || undefined,
+      tipo_venda_padrao: formData.get('tipo_venda_padrao') as string || undefined,
+      inscricao_estadual: formData.get('inscricao_estadual') as string || null,
+      constancia_cadastrada: formData.get('constancia_cadastrada')
+        ? Number(formData.get('constancia_cadastrada'))
+        : null,
     })
     .eq('id', id)
 
@@ -166,6 +174,19 @@ export async function listarVendedores() {
     .order('nome')
   if (error) return []
   return data ?? []
+}
+
+export async function moverFunilEmpresa(empresaId: string, funil: string, motivo?: string) {
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('empresas')
+    .update({ funil })
+    .eq('id', empresaId)
+  if (error) return { error: error.message }
+  revalidatePath('/empresas')
+  revalidatePath(`/empresas/${empresaId}`)
+  revalidatePath('/negociacoes')
+  return { ok: true }
 }
 
 export async function buscarCep(cep: string) {

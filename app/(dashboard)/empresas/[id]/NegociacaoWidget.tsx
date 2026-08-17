@@ -20,12 +20,11 @@ const ORIGENS = [
   { value: 'outro',      label: 'Outro' },
 ]
 
-function badgeStatus(status: string) {
+function statusBadge(status: string) {
   const map: Record<string, { variant: any; label: string }> = {
-    aberta:  { variant: 'info',    label: 'Aberta' },
-    ganha:   { variant: 'success', label: 'Ganha' },
-    perdida: { variant: 'danger',  label: 'Perdida' },
-    gaveta:  { variant: 'warning', label: 'Gaveta' },
+    aberta:    { variant: 'info',    label: 'Aberta' },
+    concluida: { variant: 'success', label: 'Concluída' },
+    cancelada: { variant: 'danger',  label: 'Cancelada' },
   }
   return map[status] ?? { variant: 'default', label: status }
 }
@@ -52,7 +51,7 @@ export function NegociacaoWidget({ empresaId, negociacaoAtiva }: Props) {
     })
   }
 
-  const status = negociacaoAtiva ? badgeStatus(negociacaoAtiva.status) : null
+  const status = negociacaoAtiva ? statusBadge(negociacaoAtiva.status) : null
 
   return (
     <>
@@ -70,12 +69,7 @@ export function NegociacaoWidget({ empresaId, negociacaoAtiva }: Props) {
         <div className="bg-white border border-[#DDD9D2] rounded-xl p-4">
           {negociacaoAtiva ? (
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Badge variant={status!.variant}>{status!.label}</Badge>
-                <Badge variant={negociacaoAtiva.tipo === 'novo' ? 'info' : 'default'}>
-                  {negociacaoAtiva.tipo === 'novo' ? 'REG 1' : 'REG 2'}
-                </Badge>
-              </div>
+              <Badge variant={status!.variant}>{status!.label}</Badge>
               {negociacaoAtiva.valor_estimado != null && (
                 <p className="text-sm font-semibold text-[#0B1929]">
                   {Number(negociacaoAtiva.valor_estimado).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
@@ -122,15 +116,6 @@ export function NegociacaoWidget({ empresaId, negociacaoAtiva }: Props) {
           {erro && (
             <div className="bg-[#FDE8E8] border border-[#FABABA] text-[#8B1A1A] text-sm px-4 py-3 rounded-lg">{erro}</div>
           )}
-          <Select
-            name="tipo"
-            label="Tipo"
-            defaultValue="novo"
-            options={[
-              { value: 'novo',       label: 'REG 1 — Novo cliente' },
-              { value: 'recorrente', label: 'REG 2 — Cliente recorrente' },
-            ]}
-          />
           <Select
             name="origem"
             label="Origem"

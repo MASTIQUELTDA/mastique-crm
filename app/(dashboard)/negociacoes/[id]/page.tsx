@@ -8,12 +8,24 @@ import TimelineInteracoes from './TimelineInteracoes'
 
 function badgeStatus(status: string) {
   const map: Record<string, { variant: any; label: string }> = {
-    aberta:  { variant: 'info',    label: 'Aberta' },
-    ganha:   { variant: 'success', label: 'Ganha' },
-    perdida: { variant: 'danger',  label: 'Perdida' },
-    gaveta:  { variant: 'warning', label: 'Gaveta' },
+    aberta:    { variant: 'info',    label: 'Aberta' },
+    concluida: { variant: 'success', label: 'Concluída' },
+    cancelada: { variant: 'danger',  label: 'Cancelada' },
   }
   return map[status] ?? { variant: 'default', label: status }
+}
+
+function badgeFunil(funil: string) {
+  const map: Record<string, string> = {
+    novos: 'bg-[#E0EDFF] text-[#1A3E7A]',
+    recorrentes: 'bg-[#E6F4EC] text-[#1A6B35]',
+    gaveta: 'bg-[#FFF3CD] text-[#7A4F00]',
+    rateio: 'bg-[#FDE8E8] text-[#8B1A1A]',
+  }
+  const labels: Record<string, string> = {
+    novos: 'Novos', recorrentes: 'Recorrentes', gaveta: 'Gaveta', rateio: 'Rateio'
+  }
+  return { cls: map[funil] ?? 'bg-[#F4F2EE] text-[#7A8FA6]', label: labels[funil] ?? funil }
 }
 
 function formatarData(iso: string) {
@@ -35,6 +47,7 @@ export default async function NegociacaoDetalhePage({
   }
 
   const status = badgeStatus(neg.status)
+  const funil = badgeFunil(neg.empresa_funil)
 
   return (
     <div className="flex flex-col h-full">
@@ -49,9 +62,12 @@ export default async function NegociacaoDetalhePage({
               {neg.empresa_fantasia ?? neg.empresa_nome}
             </h1>
             <Badge variant={status.variant}>{status.label}</Badge>
-            <Badge variant={neg.tipo === 'novo' ? 'info' : 'default'}>
-              {neg.tipo === 'novo' ? 'REG 1 — Novo' : 'REG 2 — Recorrente'}
-            </Badge>
+            <span className="text-xs font-semibold text-[#3A5A78] bg-[#E8EDF2] px-2 py-0.5 rounded">
+              {neg.empresa_regiao === 'reg1' ? 'REG 1' : 'REG 2'}
+            </span>
+            <span className={`text-xs font-medium px-2 py-0.5 rounded ${funil.cls}`}>
+              {funil.label}
+            </span>
           </div>
           {neg.empresa_fantasia && (
             <p className="text-sm text-[#7A8FA6] mt-0.5">{neg.empresa_nome}</p>
@@ -124,7 +140,7 @@ export default async function NegociacaoDetalhePage({
               {neg.motivo_fechamento && (
                 <div>
                   <p className="text-xs text-[#7A8FA6] mb-0.5">
-                    {neg.status === 'perdida' ? 'Motivo da perda' : neg.status === 'gaveta' ? 'Motivo da gaveta' : 'Observação de fechamento'}
+                    {neg.status === 'cancelada' ? 'Motivo do cancelamento' : 'Observação de fechamento'}
                   </p>
                   <p className="text-xs text-[#5E7A96]">{neg.motivo_fechamento}</p>
                 </div>

@@ -2,7 +2,8 @@ import { Suspense } from 'react'
 import { listarNegociacoes } from '@/app/actions/negociacoes'
 import NegociacoesCliente from './NegociacoesCliente'
 
-interface SearchParams { tipo?: string; status?: string }
+// aba pode ser: abertas | novos | recorrentes | gaveta | historico
+interface SearchParams { aba?: string }
 
 export default async function NegociacoesPage({
   searchParams,
@@ -10,24 +11,26 @@ export default async function NegociacoesPage({
   searchParams: Promise<SearchParams>
 }) {
   const sp = await searchParams
-
-  // Aba ativa determina o status/tipo a buscar
-  const aba = sp.status ?? 'aberta'
+  const aba = sp.aba ?? 'abertas'
 
   let negociacoes
-  if (aba === 'aberta') {
-    negociacoes = await listarNegociacoes('aberta', sp.tipo)
+  if (aba === 'novos') {
+    negociacoes = await listarNegociacoes('aberta', 'novos')
+  } else if (aba === 'recorrentes') {
+    negociacoes = await listarNegociacoes('aberta', 'recorrentes')
   } else if (aba === 'gaveta') {
-    negociacoes = await listarNegociacoes('gaveta')
-  } else {
-    // historico = ganha + perdida
-    const [ganhas, perdidas] = await Promise.all([
-      listarNegociacoes('ganha'),
-      listarNegociacoes('perdida'),
+    negociacoes = await listarNegociacoes('aberta', 'gaveta')
+  } else if (aba === 'historico') {
+    const [concluidas, canceladas] = await Promise.all([
+      listarNegociacoes('concluida'),
+      listarNegociacoes('cancelada'),
     ])
-    negociacoes = [...ganhas, ...perdidas].sort(
+    negociacoes = [...concluidas, ...canceladas].sort(
       (a, b) => new Date(b.atualizado_em).getTime() - new Date(a.atualizado_em).getTime()
     )
+  } else {
+    // abertas = todas as abertas (todos os funis)
+    negociacoes = await listarNegociacoes('aberta')
   }
 
   return (
@@ -35,7 +38,6 @@ export default async function NegociacoesPage({
       <NegociacoesCliente
         negociacoesIniciais={negociacoes}
         abaAtiva={aba}
-        tipoFiltro={sp.tipo}
       />
     </Suspense>
   )
