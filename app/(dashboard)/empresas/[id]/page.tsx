@@ -3,11 +3,13 @@ import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { buscarEmpresa, listarVendedores } from '@/app/actions/empresas'
+import { buscarNegociacaoAtiva } from '@/app/actions/negociacoes'
 import { Badge } from '@/components/ui/Badge'
 import { ContatosSection } from './ContatosSection'
 import { EnderecosSection } from './EnderecosSection'
 import { CondicoesSection } from './CondicoesSection'
 import { VendedorSection } from './VendedorSection'
+import { NegociacaoWidget } from './NegociacaoWidget'
 import EmpresaDetalheCliente from './EmpresaDetalheCliente'
 
 function formatarCpfCnpj(valor: string): string {
@@ -40,8 +42,9 @@ export default async function EmpresaDetalhePage({
     notFound()
   }
 
-  const [vendedores] = await Promise.all([
+  const [vendedores, negociacaoAtiva] = await Promise.all([
     podeAtribuirVendedor ? listarVendedores() : Promise.resolve([]),
+    buscarNegociacaoAtiva(id),
   ])
 
   const condicao = empresa.condicoes_comerciais[0] ?? null
@@ -115,6 +118,8 @@ export default async function EmpresaDetalhePage({
               </div>
             </div>
           </section>
+
+          <NegociacaoWidget empresaId={empresa.id} negociacaoAtiva={negociacaoAtiva as any} />
 
           <CondicoesSection empresaId={empresa.id} condicao={condicao} />
 

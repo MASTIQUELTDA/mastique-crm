@@ -29,6 +29,49 @@ export interface PerfilUsuario {
   ativo: boolean
 }
 
+export type NegociacaoStatus = 'aberta' | 'ganha' | 'perdida' | 'gaveta'
+export type NegociacaoTipo = 'novo' | 'recorrente'
+export type InteracaoTipo = 'nota' | 'ligacao' | 'email' | 'reuniao' | 'proposta' | 'pedido' | 'sistema'
+
+export interface Negociacao {
+  id: string
+  empresa_id: string
+  vendedor_id: string | null
+  tipo: NegociacaoTipo
+  status: NegociacaoStatus
+  valor_estimado: number | null
+  origem: string | null
+  motivo_fechamento: string | null
+  observacoes: string | null
+  data_proxima_acao: string | null
+  criado_em: string
+  atualizado_em: string
+}
+
+export interface NegociacaoResumo extends Negociacao {
+  empresa_nome: string
+  empresa_fantasia: string | null
+  empresa_segmento: string | null
+  vendedor_nome: string | null
+}
+
+export interface NegociacaoInteracao {
+  id: string
+  negociacao_id: string
+  autor_id: string | null
+  tipo: InteracaoTipo
+  descricao: string
+  criado_em: string
+}
+
+export interface NegociacaoDetalhe extends Negociacao {
+  empresa_nome: string
+  empresa_fantasia: string | null
+  empresa_segmento: string | null
+  vendedor_nome: string | null
+  interacoes: NegociacaoInteracao[]
+}
+
 export interface Contato {
   id: string
   empresa_id: string
