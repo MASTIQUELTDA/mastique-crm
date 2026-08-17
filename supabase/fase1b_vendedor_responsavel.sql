@@ -8,7 +8,8 @@ ALTER TABLE public.empresas
   ADD COLUMN IF NOT EXISTS vendedor_id uuid REFERENCES public.perfis(id) ON DELETE SET NULL;
 
 -- Recria a view empresas_resumo incluindo vendedor
-CREATE OR REPLACE VIEW public.empresas_resumo AS
+DROP VIEW IF EXISTS public.empresas_resumo;
+CREATE VIEW public.empresas_resumo AS
 SELECT
   e.id,
   e.cpf_cnpj,
