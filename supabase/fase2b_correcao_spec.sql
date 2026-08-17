@@ -40,6 +40,9 @@ ALTER TABLE public.negociacoes DROP CONSTRAINT IF EXISTS negociacoes_status_chec
 ALTER TABLE public.negociacoes ADD CONSTRAINT negociacoes_status_check
   CHECK (status IN ('aberta', 'concluida', 'cancelada'));
 
+-- Dropar view que depende da coluna tipo antes de removê-la
+DROP VIEW IF EXISTS public.negociacoes_resumo;
+
 -- Dropar constraint antiga de tipo e remover coluna
 ALTER TABLE public.negociacoes DROP CONSTRAINT IF EXISTS negociacoes_tipo_check;
 ALTER TABLE public.negociacoes DROP COLUMN IF EXISTS tipo;
