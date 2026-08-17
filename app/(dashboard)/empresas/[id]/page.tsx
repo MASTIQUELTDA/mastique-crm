@@ -1,8 +1,11 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Building2, MapPin, Phone, Mail, CreditCard, Pencil } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import { buscarEmpresa } from '@/app/actions/empresas'
 import { Badge } from '@/components/ui/Badge'
+import { ContatosSection } from './ContatosSection'
+import { EnderecosSection } from './EnderecosSection'
+import { CondicoesSection } from './CondicoesSection'
 import EmpresaDetalheCliente from './EmpresaDetalheCliente'
 
 function formatarCpfCnpj(valor: string): string {
@@ -30,9 +33,7 @@ export default async function EmpresaDetalhePage({
     notFound()
   }
 
-  const enderecoPrincipal = empresa.enderecos.find(e => e.tipo === 'principal') ?? empresa.enderecos[0]
-  const contatoPrincipal = empresa.contatos.find(c => c.principal) ?? empresa.contatos[0]
-  const condicao = empresa.condicoes_comerciais[0]
+  const condicao = empresa.condicoes_comerciais[0] ?? null
 
   return (
     <div className="flex flex-col h-full">
@@ -63,86 +64,8 @@ export default async function EmpresaDetalhePage({
 
         {/* Coluna principal (65%) */}
         <div className="flex-[65] overflow-y-auto px-8 py-6 space-y-6">
-
-          {/* Contatos */}
-          <section>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-xs font-bold text-[#3A5A78] uppercase tracking-widest">Contatos</h2>
-            </div>
-            {empresa.contatos.length === 0 ? (
-              <p className="text-sm text-[#A0AEC0] py-4">Nenhum contato cadastrado.</p>
-            ) : (
-              <div className="space-y-3">
-                {empresa.contatos.map(c => (
-                  <div key={c.id} className="bg-white border border-[#DDD9D2] rounded-xl p-4">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="font-semibold text-[#0B1929] text-sm">{c.nome}</p>
-                        {c.cargo && <p className="text-xs text-[#7A8FA6] mt-0.5">{c.cargo}</p>}
-                      </div>
-                      {c.principal && <Badge variant="info">Principal</Badge>}
-                    </div>
-                    <div className="flex flex-wrap gap-4 mt-3">
-                      {c.telefone && (
-                        <a href={`tel:${c.telefone}`} className="flex items-center gap-1.5 text-sm text-[#3A5A78] hover:text-[#0B1929]">
-                          <Phone size={13} />
-                          {c.telefone}
-                        </a>
-                      )}
-                      {c.whatsapp && (
-                        <a
-                          href={`https://wa.me/55${c.whatsapp.replace(/\D/g, '')}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1.5 text-sm text-[#3A5A78] hover:text-[#0B1929]"
-                        >
-                          <Phone size={13} className="text-green-500" />
-                          {c.whatsapp}
-                        </a>
-                      )}
-                      {c.email && (
-                        <a href={`mailto:${c.email}`} className="flex items-center gap-1.5 text-sm text-[#3A5A78] hover:text-[#0B1929]">
-                          <Mail size={13} />
-                          {c.email}
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-
-          {/* Endereços */}
-          <section>
-            <h2 className="text-xs font-bold text-[#3A5A78] uppercase tracking-widest mb-3">Endereços</h2>
-            {empresa.enderecos.length === 0 ? (
-              <p className="text-sm text-[#A0AEC0] py-4">Nenhum endereço cadastrado.</p>
-            ) : (
-              <div className="space-y-3">
-                {empresa.enderecos.map(e => (
-                  <div key={e.id} className="bg-white border border-[#DDD9D2] rounded-xl p-4 flex items-start gap-3">
-                    <MapPin size={16} className="text-[#7A8FA6] mt-0.5 shrink-0" />
-                    <div>
-                      <Badge variant="default" className="mb-1">
-                        {{ principal: 'Principal', entrega: 'Entrega', cobranca: 'Cobrança', outro: 'Outro' }[e.tipo]}
-                      </Badge>
-                      <p className="text-sm text-[#0B1929]">
-                        {[e.logradouro, e.numero, e.complemento].filter(Boolean).join(', ')}
-                      </p>
-                      {(e.bairro || e.cidade) && (
-                        <p className="text-xs text-[#7A8FA6] mt-0.5">
-                          {[e.bairro, e.cidade, e.uf].filter(Boolean).join(' — ')}
-                          {e.cep && ` · CEP ${e.cep}`}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-
+          <ContatosSection empresaId={empresa.id} contatos={empresa.contatos} />
+          <EnderecosSection empresaId={empresa.id} enderecos={empresa.enderecos} />
         </div>
 
         {/* Coluna contexto (35%) */}
@@ -173,47 +96,7 @@ export default async function EmpresaDetalhePage({
             </div>
           </section>
 
-          {/* Condições comerciais */}
-          <section>
-            <h2 className="text-xs font-bold text-[#3A5A78] uppercase tracking-widest mb-3">Condições comerciais</h2>
-            <div className="bg-white border border-[#DDD9D2] rounded-xl p-4">
-              {condicao ? (
-                <div className="space-y-3">
-                  {condicao.prazo_padrao != null && (
-                    <div>
-                      <p className="text-xs text-[#7A8FA6] mb-0.5">Prazo padrão</p>
-                      <p className="text-sm font-semibold text-[#0B1929]">{condicao.prazo_padrao} dias</p>
-                    </div>
-                  )}
-                  {condicao.desconto_max != null && (
-                    <div>
-                      <p className="text-xs text-[#7A8FA6] mb-0.5">Desconto máximo</p>
-                      <p className="text-sm font-semibold text-[#0B1929]">{Number(condicao.desconto_max).toFixed(1)}%</p>
-                    </div>
-                  )}
-                  {condicao.limite_credito != null && (
-                    <div>
-                      <p className="text-xs text-[#7A8FA6] mb-0.5">Limite de crédito</p>
-                      <p className="text-sm font-semibold text-[#0B1929]">
-                        {Number(condicao.limite_credito).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                      </p>
-                    </div>
-                  )}
-                  {condicao.observacoes && (
-                    <div>
-                      <p className="text-xs text-[#7A8FA6] mb-0.5">Observações</p>
-                      <p className="text-xs text-[#5E7A96]">{condicao.observacoes}</p>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 text-[#A0AEC0] py-2">
-                  <CreditCard size={16} />
-                  <p className="text-sm">Sem condições definidas</p>
-                </div>
-              )}
-            </div>
-          </section>
+          <CondicoesSection empresaId={empresa.id} condicao={condicao} />
 
         </div>
       </div>
