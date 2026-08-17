@@ -8,6 +8,7 @@ export interface Empresa {
   tipo: 'pf' | 'pj'
   segmento: string | null
   ativo: boolean
+  vendedor_id: string | null
   criado_em: string
   atualizado_em: string
 }
@@ -18,6 +19,14 @@ export interface EmpresaResumo extends Empresa {
   contato_whatsapp: string | null
   cidade: string | null
   uf: string | null
+  vendedor_nome: string | null
+}
+
+export interface PerfilUsuario {
+  id: string
+  nome: string
+  perfil: string
+  ativo: boolean
 }
 
 export interface Contato {

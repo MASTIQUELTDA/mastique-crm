@@ -36,12 +36,12 @@ export async function listarEmpresas(busca?: string, segmento?: string, ativo?: 
   return data ?? []
 }
 
-export async function buscarEmpresa(id: string): Promise<EmpresaDetalhe> {
+export async function buscarEmpresa(id: string): Promise<EmpresaDetalhe & { vendedor_nome: string | null }> {
   const supabase = await createClient()
 
-  const [{ data: empresa, error: e1 }, { data: contatos, error: e2 }, { data: enderecos, error: e3 }, { data: condicoes, error: e4 }] =
+  const [{ data: empresa, error: e1 }, { data: contatos }, { data: enderecos }, { data: condicoes }] =
     await Promise.all([
-      supabase.from('empresas').select('*').eq('id', id).single(),
+      supabase.from('empresas').select('*, perfis(nome)').eq('id', id).single(),
       supabase.from('contatos').select('*').eq('empresa_id', id).order('principal', { ascending: false }),
       supabase.from('enderecos').select('*').eq('empresa_id', id),
       supabase.from('condicoes_comerciais').select('*').eq('empresa_id', id).single(),
@@ -49,8 +49,11 @@ export async function buscarEmpresa(id: string): Promise<EmpresaDetalhe> {
 
   if (e1) throw new Error(e1.message)
 
+  const { perfis, ...empresaData } = empresa as any
+
   return {
-    ...empresa,
+    ...empresaData,
+    vendedor_nome: perfis?.nome ?? null,
     contatos: contatos ?? [],
     enderecos: enderecos ?? [],
     condicoes_comerciais: condicoes ? [condicoes] : [],
@@ -132,12 +135,37 @@ export async function editarEmpresa(id: string, formData: FormData) {
   return { ok: true }
 }
 
-export async function inativarEmpresa(id: string) {
+export async function toggleAtivoEmpresa(id: string, ativo: boolean) {
   const supabase = await createClient()
-  const { error } = await supabase.from('empresas').update({ ativo: false }).eq('id', id)
+  const { error } = await supabase.from('empresas').update({ ativo }).eq('id', id)
   if (error) return { error: error.message }
   revalidatePath('/empresas')
+  revalidatePath(`/empresas/${id}`)
   return { ok: true }
+}
+
+export async function atribuirVendedor(empresaId: string, vendedorId: string | null) {
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('empresas')
+    .update({ vendedor_id: vendedorId })
+    .eq('id', empresaId)
+  if (error) return { error: error.message }
+  revalidatePath('/empresas')
+  revalidatePath(`/empresas/${empresaId}`)
+  return { ok: true }
+}
+
+export async function listarVendedores() {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('perfis')
+    .select('id, nome, perfil')
+    .in('perfil', ['vendedor', 'gestor', 'admin'])
+    .eq('ativo', true)
+    .order('nome')
+  if (error) return []
+  return data ?? []
 }
 
 export async function buscarCep(cep: string) {

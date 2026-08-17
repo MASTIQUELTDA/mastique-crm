@@ -1,11 +1,13 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
-import { buscarEmpresa } from '@/app/actions/empresas'
+import { createClient } from '@/lib/supabase/server'
+import { buscarEmpresa, listarVendedores } from '@/app/actions/empresas'
 import { Badge } from '@/components/ui/Badge'
 import { ContatosSection } from './ContatosSection'
 import { EnderecosSection } from './EnderecosSection'
 import { CondicoesSection } from './CondicoesSection'
+import { VendedorSection } from './VendedorSection'
 import EmpresaDetalheCliente from './EmpresaDetalheCliente'
 
 function formatarCpfCnpj(valor: string): string {
@@ -26,12 +28,21 @@ export default async function EmpresaDetalhePage({
 }) {
   const { id } = await params
 
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const perfil: string = user?.user_metadata?.perfil ?? 'vendedor'
+  const podeAtribuirVendedor = perfil === 'gestor' || perfil === 'admin'
+
   let empresa
   try {
     empresa = await buscarEmpresa(id)
   } catch {
     notFound()
   }
+
+  const [vendedores] = await Promise.all([
+    podeAtribuirVendedor ? listarVendedores() : Promise.resolve([]),
+  ])
 
   const condicao = empresa.condicoes_comerciais[0] ?? null
 
@@ -70,6 +81,15 @@ export default async function EmpresaDetalhePage({
 
         {/* Coluna contexto (35%) */}
         <div className="flex-[35] border-l border-[#DDD9D2] overflow-y-auto px-6 py-6 space-y-6 bg-[#FAFAF8]">
+
+          {/* Responsável */}
+          <VendedorSection
+            empresaId={empresa.id}
+            vendedorId={empresa.vendedor_id}
+            vendedorNome={empresa.vendedor_nome}
+            vendedores={vendedores as any}
+            podeEditar={podeAtribuirVendedor}
+          />
 
           {/* Identificação */}
           <section>

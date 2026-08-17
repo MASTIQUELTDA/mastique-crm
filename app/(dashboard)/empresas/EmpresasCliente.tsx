@@ -123,6 +123,7 @@ export default function EmpresasCliente({ empresasIniciais, filtros }: EmpresasC
                   <th className="text-left px-5 py-3 text-xs font-semibold text-[#7A8FA6] uppercase tracking-wide">CPF/CNPJ</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-[#7A8FA6] uppercase tracking-wide">Contato</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-[#7A8FA6] uppercase tracking-wide">Localidade</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-[#7A8FA6] uppercase tracking-wide">Responsável</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-[#7A8FA6] uppercase tracking-wide">Status</th>
                   <th className="px-5 py-3" />
                 </tr>
@@ -170,6 +171,13 @@ export default function EmpresasCliente({ empresasIniciais, filtros }: EmpresasC
                           <MapPin size={12} />
                           {empresa.cidade}{empresa.uf ? `, ${empresa.uf}` : ''}
                         </p>
+                      ) : (
+                        <span className="text-[#DDD9D2] text-xs">—</span>
+                      )}
+                    </td>
+                    <td className="px-5 py-4">
+                      {empresa.vendedor_nome ? (
+                        <p className="text-sm text-[#0B1929]">{empresa.vendedor_nome}</p>
                       ) : (
                         <span className="text-[#DDD9D2] text-xs">—</span>
                       )}
